@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kuiz Pendidikan Islam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #87CEEB; /* Sky blue background */
+            overflow-x: hidden;
+        }
+
+        /* Container styles for different screens */
+        .screen-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+        
+        .screen-active {
+            display: flex;
+        }
+
+        /* --- STYLES UNTUK KUIZ LUMBA (ASAL) --- */
+        #track-container {
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+            background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ffff, #9999ff, #ff99ff);
+            border-radius: 20px;
+            padding: 20px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .lane {
+            position: relative;
+            height: 100px;
+            margin: 20px 0;
+            border-bottom: 2px dashed rgba(255, 255, 255, 0.5);
+        }
+        
+        .lane:last-child {
+            border-bottom: none;
+        }
+
+        .character {
+            position: absolute;
+            left: 20px; /* Starting position */
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem; /* Size of emoji */
+            transition: left 0.1s ease-out; /* Smooth movement */
+            z-index: 10;
+        }
+
+        #finish-line {
+            position: absolute;
+            right: 50px;
+            top: 0;
+            bottom: 0;
+            width: 20px;
+            background: repeating-linear-gradient(
+                45deg,
+                #000,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
+            border-radius: 5px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+        
+        #finish-label {
+            position: absolute;
+            right: 50px;
+            top: -30px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            transform: translateX(50%);
+        }
+
+        .victory-screen-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .victory-text {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px gold;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .trophy {
+            font-size: 8rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+
+        .controls-info {
+            background-color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .key-btn {
+            display: inline-block;
+            background-color: #f3f4f6;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-weight: bold;
+            font-family: monospace;
+            box-shadow: 0 2px 0 #9ca3af;
+            margin: 0 5px;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+        }
+
+        /* --- STYLES UNTUK KUIZ PADANAN --- */
+        .match-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 80px;
+            font-weight: 600;
+            color: #374151;
+            border: 3px solid transparent;
+            user-select: none;
+        }
+
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .match-selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        .match-correct {
+            background-color: #22c55e !important;
+            color: white !important;
+            border-color: #16a34a !important;
+            pointer-events: none;
+            animation: pulse-correct 0.5s;
+        }
+
+        .match-wrong {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #dc2626 !important;
+            animation: shake 0.5s;
+        }
+
+        @keyframes pulse-correct {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background-color: #4ade80;}
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .line-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MENU UTAMA -->
+    <div id="screen-menu" class="screen-container screen-active">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-2xl w-11/12">
+            <div class="text-6xl mb-6">🕋📚</div>
+            <h1 class="text-4xl font-extrabold text-indigo-800 mb-2">Kuiz Pendidikan Islam</h1>
+            <p class="text-gray-600 mb-8 text-lg">Pilih mod permainan untuk menguji pengetahuan anda!</p>
+            
+            <div class="flex flex-col gap-4">
+                <button onclick="switchScreen('screen-racing')" class="group relative px-8 py-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold rounded-2xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-between overflow-hidden">
+                    <span class="relative z-10 text-left">
+                        <span class="block text-2xl mb-1">🏁 Lumba Menaip</span>
+                        <span class="block text-sm font-normal text-blue-100">Kuiz Pantas: Kura-kura vs Arnab (Berdua)</span>
+                    </span>
+                    <span class="text-5xl relative z-10 transition-transform group-hover:translate-x-2">🐇🐢</span>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                </button>
+
+                <button onclick="switchScreen('screen-matching')" class="group relative px-8 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xl font-bold rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg active:scale-95 flex items-center justify-between overflow-hidden">
+                    <span class="relative z-10 text-left">
+                        <span class="block text-2xl mb-1">🧩 Kuiz Padanan</span>
+                        <span class="block text-sm font-normal text-emerald-100">Silbus Tingkatan 1 (Individu)</span>
+                    </span>
+                    <span class="text-5xl relative z-10 transition-transform group-hover:scale-110">🔗</span>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                </button>
+
+                <!-- KUIZ 3: TEKA SIAPA SAYA -->
+                <button onclick="switchScreen('screen-guessing')" class="group relative px-8 py-5 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xl font-bold rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg active:scale-95 flex items-center justify-between overflow-hidden">
+                    <span class="relative z-10 text-left">
+                        <span class="block text-2xl mb-1">🤔 Teka Siapa Saya</span>
+                        <span class="block text-sm font-normal text-purple-100">Tokoh & Malaikat Ting. 1 (Individu)</span>
+                    </span>
+                    <span class="text-5xl relative z-10 transition-transform group-hover:rotate-12">👤</span>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KUIZ 2: KUIZ PADANAN (TINGKATAN 1) -->
+    <div id="screen-matching" class="screen-container">
+        <button onclick="switchScreen('screen-menu')" class="back-btn px-4 py-2 bg-white text-teal-700 font-bold rounded-full shadow hover:bg-gray-100 flex items-center gap-2">
+            ⬅️ Kembali
+        </button>
+
+        <div class="w-11/12 max-w-5xl mt-12">
+            <div class="text-center mb-6 bg-white p-6 rounded-2xl shadow-md">
+                <h2 class="text-3xl font-bold text-teal-700 mb-2">Kuiz Padanan: Pendidikan Islam Tingkatan 1</h2>
+                <p class="text-gray-600">Tekan terma di sebelah kiri, kemudian tekan maksud yang betul di sebelah kanan.</p>
+                <div class="mt-3 flex items-center justify-center gap-4">
+                    <span class="text-sm font-semibold bg-gray-100 px-3 py-1 rounded-full text-gray-700">Markah: <span id="match-score" class="text-teal-600 text-lg">0 / 5</span></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10" id="match-board">
+                <!-- Kolum Terma -->
+                <div id="terms-column" class="flex flex-col gap-2">
+                    <!-- Dinamik -->
+                </div>
+                <!-- Kolum Maksud -->
+                <div id="defs-column" class="flex flex-col gap-2">
+                    <!-- Dinamik -->
+                </div>
+            </div>
+        </div>
+
+        <div id="match-victory-screen" class="victory-screen-overlay">
+            <div class="trophy">🌟</div>
+            <div class="victory-text">ALHAMDULILLAH! TEPAT SEMUA!</div>
+            <div class="flex gap-4 mt-4">
+                <button onclick="initMatchingGame()" class="px-8 py-4 bg-teal-500 text-white text-xl font-bold rounded-full hover:bg-teal-400 transition-colors shadow-xl active:scale-95">
+                    Main Semula
+                </button>
+                <button onclick="switchScreen('screen-menu')" class="px-8 py-4 bg-white text-teal-700 text-xl font-bold rounded-full hover:bg-gray-100 transition-colors shadow-xl active:scale-95">
+                    Menu Utama
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KUIZ 3: TEKA SIAPA SAYA (TINGKATAN 1) -->
+    <div id="screen-guessing" class="screen-container">
+        <button onclick="switchScreen('screen-menu')" class="back-btn px-4 py-2 bg-white text-purple-700 font-bold rounded-full shadow hover:bg-gray-100 flex items-center gap-2">
+            ⬅️ Kembali
+        </button>
+
+        <div class="w-11/12 max-w-3xl mt-12 relative z-10">
+            <div class="text-center mb-6 bg-white p-6 rounded-2xl shadow-md border-t-4 border-purple-500">
+                <h2 class="text-3xl font-bold text-purple-700 mb-2">Kuiz: Teka Siapa Saya?</h2>
+                <p class="text-gray-600">Baca klu yang diberikan dan pilih jawapan tokoh atau malaikat yang paling tepat.</p>
+                <div class="mt-4 flex items-center justify-between px-4">
+                    <span class="text-sm font-semibold bg-purple-100 px-4 py-2 rounded-full text-purple-700">Soalan: <span id="guess-q-num" class="font-bold">1 / 5</span></span>
+                    <span class="text-sm font-semibold bg-green-100 px-4 py-2 rounded-full text-green-700">Markah: <span id="guess-score-text" class="font-bold text-lg">0</span></span>
+                </div>
+            </div>
+
+            <!-- Kad Soalan -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="p-8 bg-purple-50 flex items-center justify-center min-h-[160px] border-b border-purple-100">
+                    <p id="guess-clue-text" class="text-xl md:text-2xl text-center font-medium text-gray-800 italic leading-relaxed">
+                        "Saya diciptakan daripada cahaya. Tugas utama saya ialah menyampaikan wahyu kepada para rasul. Siapakah saya?"
+                    </p>
+                </div>
+                <!-- Grid Pilihan Jawapan -->
+                <div id="guess-options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-white">
+                    <!-- Butang jawapan dijana secara dinamik di sini -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Skrin Kemenangan Teka Siapa Saya -->
+        <div id="guess-victory-screen" class="victory-screen-overlay">
+            <div class="trophy text-purple-400">🎓</div>
+            <div class="victory-text text-purple-200">KUIZ TAMAT!</div>
+            <p id="guess-final-score" class="text-3xl mb-8 font-bold text-white text-shadow-md">Markah Akhir: 5/5</p>
+            <div class="flex gap-4 mt-4">
+                <button onclick="initGuessingGame()" class="px-8 py-4 bg-purple-500 text-white text-xl font-bold rounded-full hover:bg-purple-400 transition-colors shadow-xl active:scale-95">
+                    Main Semula
+                </button>
+                <button onclick="switchScreen('screen-menu')" class="px-8 py-4 bg-white text-purple-700 text-xl font-bold rounded-full hover:bg-gray-100 transition-colors shadow-xl active:scale-95">
+                    Menu Utama
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIK NAVIGASI ---
+        let currentScreen = 'screen-menu';
+        
+        function switchScreen(screenId) {
+            // Sembunyikan semua
+            document.querySelectorAll('.screen-container').forEach(el => {
+                el.classList.remove('screen-active');
+            });
+            // Tunjukkan skrin pilihan
+            document.getElementById(screenId).classList.add('screen-active');
+            currentScreen = screenId;
+
+            // Logik spesifik skrin
+            if (screenId === 'screen-racing') {
+                resetGame();
+                calculateFinishLine();
+            } else if (screenId === 'screen-matching') {
+                initMatchingGame();
+            } else if (screenId === 'screen-guessing') {
+                initGuessingGame();
+            }
+        }
+
+        // --- LOGIK KUIZ LUMBA (KURA-KURA & ARNAB) ---
+        const turtle = document.getElementById('turtle');
+        const rabbit = document.getElementById('rabbit');
+        const victoryScreen = document.getElementById('victory-screen');
+        const winnerText = document.getElementById('winner-text');
+        const resetBtn = document.getElementById('reset-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const trackContainer = document.getElementById('track-container');
+        
+        let gameActive = true;
+        let turtlePosition = 20; 
+        let rabbitPosition = 20; 
+        const moveStep = 15; 
+        let finishLineX = 0;
+
+        function calculateFinishLine() {
+            if (currentScreen !== 'screen-racing') return;
+            finishLineX = trackContainer.offsetWidth - 50 - 50; 
+        }
+
+        window.addEventListener('resize', calculateFinishLine);
+
+        function moveCharacter(character, currentPos, step) {
+            if (!gameActive) return currentPos;
+            const newPos = currentPos + step;
+            character.style.left = newPos + 'px';
+            return newPos;
+        }
+
+        function checkWin() {
+            if (turtlePosition >= finishLineX) {
+                gameActive = false;
+                showVictory("KURA-KURA (PEMAIN 1)");
+            } else if (rabbitPosition >= finishLineX) {
+                gameActive = false;
+                showVictory("ARNAB (PEMAIN 2)");
+            }
+        }
+
+        function showVictory(winnerName) {
+            winnerText.textContent = `TAHNIAH ${winnerName} MENANG!`;
+            victoryScreen.style.display = 'flex';
+        }
+
+        function resetGame() {
+            gameActive = true;
+            turtlePosition = 20;
+            rabbitPosition = 20;
+            turtle.style.left = turtlePosition + 'px';
+            rabbit.style.left = rabbitPosition + 'px';
+            victoryScreen.style.display = 'none';
+            calculateFinishLine();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (currentScreen !== 'screen-racing' || !gameActive) return;
+
+            if (e.key === 'a' || e.key === 'A') {
+                turtlePosition = moveCharacter(turtle, turtlePosition, moveStep);
+                turtle.style.transform = 'translateY(-50%) scale(1.2)';
+                setTimeout(() => turtle.style.transform = 'translateY(-50%) scale(1)', 100);
+                checkWin();
+            }
+            
+            if (e.key === 'l' || e.key === 'L') {
+                rabbitPosition = moveCharacter(rabbit, rabbitPosition, moveStep);
+                rabbit.style.transform = 'translateY(-50%) scale(1.2)';
+                setTimeout(() => rabbit.style.transform = 'translateY(-50%) scale(1)', 100);
+                checkWin();
+            }
+        });
+
+        resetBtn.addEventListener('click', resetGame);
+        playAgainBtn.addEventListener('click', resetGame);
+
+        if (window.matchMedia("(hover: none)").matches) {
+           const infoDiv = document.querySelector('.controls-info');
+           if(infoDiv){
+               const warningP = document.createElement('p');
+               warningP.className = 'text-red-500 font-bold mt-2 text-sm';
+               warningP.textContent = 'Nota: Kuiz Lumba memerlukan Keyboard fizikal.';
+               infoDiv.appendChild(warningP);
+           }
+        }
+
+        // --- LOGIK KUIZ PADANAN (TINGKATAN 1) ---
+        const quizData = [
+            { id: 1, term: "Wuduk", def: "Membersihkan anggota badan tertentu dengan air mutlak berserta niat" },
+            { id: 2, term: "Najis Mukhaffafah", def: "Air kencing kanak-kanak lelaki berumur 2 tahun ke bawah yang hanya minum susu ibu" },
+            { id: 3, term: "Malaikat Mikail", def: "Ditugaskan menurunkan hujan dan membahagikan rezeki" },
+            { id: 4, term: "Syirik", def: "Menyekutukan Allah SWT dengan sesuatu yang lain" },
+            { id: 5, term: "Al-Fatihah", def: "Surah yang wajib dibaca dalam setiap rakaat solat" }
+        ];
+
+        let termsColumn = document.getElementById('terms-column');
+        let defsColumn = document.getElementById('defs-column');
+        let matchScoreEl = document.getElementById('match-score');
+        let matchVictoryScreen = document.getElementById('match-victory-screen');
+
+        let selectedItem = { type: null, id: null, el: null }; // type: 'term' or 'def'
+        let matchedPairs = 0;
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function initMatchingGame() {
+            matchedPairs = 0;
+            matchScoreEl.textContent = `${matchedPairs} / ${quizData.length}`;
+            matchVictoryScreen.style.display = 'none';
+            selectedItem = { type: null, id: null, el: null };
+            
+            termsColumn.innerHTML = '';
+            defsColumn.innerHTML = '';
+
+            // Copy and shuffle data for both columns independently
+            const shuffledTerms = shuffleArray([...quizData]);
+            const shuffledDefs = shuffleArray([...quizData]);
+
+            shuffledTerms.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'match-card term-card text-lg';
+                card.textContent = item.term;
+                card.onclick = () => handleMatchClick('term', item.id, card);
+                termsColumn.appendChild(card);
+            });
+
+            shuffledDefs.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'match-card def-card text-md';
+                card.textContent = item.def;
+                card.onclick = () => handleMatchClick('def', item.id, card);
+                defsColumn.appendChild(card);
+            });
+        }
+
+        function handleMatchClick(type, id, el) {
+            // Jika dah dipadankan, abaikannya
+            if (el.classList.contains('match-correct')) return;
+
+            // Jika belum ada pilihan sebelumnya
+            if (!selectedItem.el) {
+                setSelection(type, id, el);
+                return;
+            }
+
+            // Jika klik pada jenis yang sama (cth: klik terma lepas tu klik terma lain)
+            if (selectedItem.type === type) {
+                clearSelection();
+                setSelection(type, id, el);
+                return;
+            }
+
+            // Memeriksa padanan
+            if (selectedItem.id === id) {
+                // Padanan Tepat
+                el.classList.add('match-correct');
+                selectedItem.el.classList.remove('match-selected');
+                selectedItem.el.classList.add('match-correct');
+                
+                matchedPairs++;
+                matchScoreEl.textContent = `${matchedPairs} / ${quizData.length}`;
+                
+                clearSelection();
+
+                // Semak menang
+                if (matchedPairs === quizData.length) {
+                    setTimeout(() => {
+                        matchVictoryScreen.style.display = 'flex';
+                    }, 800);
+                }
+            } else {
+                // Padanan Salah
+                const prevEl = selectedItem.el;
+                
+                el.classList.add('match-wrong');
+                prevEl.classList.remove('match-selected');
+                prevEl.classList.add('match-wrong');
+
+                clearSelection();
+
+                // Padam kesan merah selepas masa tamat
+                setTimeout(() => {
+                    el.classList.remove('match-wrong');
+                    prevEl.classList.remove('match-wrong');
+                }, 600);
+            }
+        }
+
+        function setSelection(type, id, el) {
+            selectedItem = { type, id, el };
+            el.classList.add('match-selected');
+        }
+
+        function clearSelection() {
+            if (selectedItem.el) {
+                selectedItem.el.classList.remove('match-selected');
+            }
+            selectedItem = { type: null, id: null, el: null };
+        }
+
+        // --- LOGIK KUIZ TEKA SIAPA SAYA (TINGKATAN 1) ---
+        const guessData = [
+            {
+                clue: "Saya diciptakan daripada cahaya. Tugas utama saya ialah menyampaikan wahyu kepada para rasul. Siapakah saya?",
+                options: ["Malaikat Jibril", "Malaikat Mikail", "Malaikat Israfil", "Malaikat Izrail"],
+                answer: 0 
+            },
+            {
+                clue: "Saya merupakan manusia pertama yang diciptakan oleh Allah SWT dan juga nabi yang pertama. Siapakah saya?",
+                options: ["Nabi Nuh AS", "Nabi Ibrahim AS", "Nabi Adam AS", "Nabi Musa AS"],
+                answer: 2
+            },
+            {
+                clue: "Saya adalah bapa saudara Nabi Muhammad SAW. Saya sangat memusuhi baginda dan nama saya disebut dalam Surah Al-Masad. Siapakah saya?",
+                options: ["Abu Jahal", "Abu Talib", "Umayyah bin Khalaf", "Abu Lahab"],
+                answer: 3
+            },
+            {
+                clue: "Saya ditugaskan oleh Allah SWT untuk mencabut nyawa semua makhluk yang bernyawa apabila tiba ajalnya. Siapakah saya?",
+                options: ["Malaikat Raqib", "Malaikat Izrail", "Malaikat Atid", "Malaikat Munkar"],
+                answer: 1
+            },
+            {
+                clue: "Saya adalah wanita pertama yang memeluk agama Islam. Saya merupakan penyokong kuat dakwah Rasulullah SAW pada peringkat awal. Siapakah saya?",
+                options: ["Saidatina Khadijah RA", "Saidatina Aisyah RA", "Saidatina Fatimah RA", "Saidatina Sumayyah RA"],
+                answer: 0
+            }
+        ];
+
+        let currentGuessIndex = 0;
+        let guessScore = 0;
+        let isGuessClickable = true;
+
+        const guessClueText = document.getElementById('guess-clue-text');
+        const guessOptionsGrid = document.getElementById('guess-options-grid');
+        const guessQNum = document.getElementById('guess-q-num');
+        const guessScoreText = document.getElementById('guess-score-text');
+        const guessVictoryScreen = document.getElementById('guess-victory-screen');
+        const guessFinalScore = document.getElementById('guess-final-score');
+
+        function initGuessingGame() {
+            currentGuessIndex = 0;
+            guessScore = 0;
+            guessVictoryScreen.style.display = 'none';
+            updateGuessScore();
+            loadGuessQuestion();
+        }
+
+        function loadGuessQuestion() {
+            isGuessClickable = true;
+            const currentQ = guessData[currentGuessIndex];
+            
+            guessQNum.textContent = `${currentGuessIndex + 1} / ${guessData.length}`;
+            guessClueText.textContent = `"${currentQ.clue}"`;
+            
+            // Kosongkan grid pilihan
+            guessOptionsGrid.innerHTML = '';
+            
+            // Masukkan pilihan secara dinamik
+            currentQ.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'p-4 rounded-xl border-2 border-purple-200 bg-purple-50 text-purple-900 font-semibold text-lg hover:bg-purple-100 hover:border-purple-300 transition-all text-center flex items-center justify-center min-h-[80px] shadow-sm';
+                btn.textContent = opt;
+                btn.onclick = () => handleGuessClick(index, btn);
+                guessOptionsGrid.appendChild(btn);
+            });
+        }
+
+        function handleGuessClick(selectedIndex, btnElement) {
+            if (!isGuessClickable) return;
+            isGuessClickable = false; // Elak tekan banyak kali
+
+            const currentQ = guessData[currentGuessIndex];
+            const allButtons = guessOptionsGrid.querySelectorAll('button');
+
+            if (selectedIndex === currentQ.answer) {
+                // Jawapan Betul
+                btnElement.classList.replace('bg-purple-50', 'bg-green-500');
+                btnElement.classList.replace('border-purple-200', 'border-green-600');
+                btnElement.classList.replace('text-purple-900', 'text-white');
+                btnElement.classList.remove('hover:bg-purple-100', 'hover:border-purple-300');
+                
+                guessScore++;
+                updateGuessScore();
+            } else {
+                // Jawapan Salah
+                btnElement.classList.replace('bg-purple-50', 'bg-red-500');
+                btnElement.classList.replace('border-purple-200', 'border-red-600');
+                btnElement.classList.replace('text-purple-900', 'text-white');
+                btnElement.classList.remove('hover:bg-purple-100', 'hover:border-purple-300');
+                
+                // Tunjuk jawapan yang betul
+                const correctBtn = allButtons[currentQ.answer];
+                correctBtn.classList.replace('bg-purple-50', 'bg-green-500');
+                correctBtn.classList.replace('border-purple-200', 'border-green-600');
+                correctBtn.classList.replace('text-purple-900', 'text-white');
+            }
+
+            // Tunggu 1.5 saat sebelum soalan seterusnya
+            setTimeout(() => {
+                currentGuessIndex++;
+                if (currentGuessIndex < guessData.length) {
+                    loadGuessQuestion();
+                } else {
+                    showGuessVictory();
+                }
+            }, 1500);
+        }
+
+        function updateGuessScore() {
+            guessScoreText.textContent = guessScore;
+        }
+
+        function showGuessVictory() {
+            guessFinalScore.textContent = `Tahniah! Markah Anda: ${guessScore} / ${guessData.length}`;
+            guessVictoryScreen.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
